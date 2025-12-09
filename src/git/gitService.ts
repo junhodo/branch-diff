@@ -150,6 +150,75 @@ export class GitService {
   }
 
   /**
+   * Get diff with conflict detection
+   * @param source - Source selection (working tree or specific branch)
+   * @param targetBranch - Target branch to compare against
+   */
+  async getDiffWithConflictDetection(
+    source: SourceSelection,
+    targetBranch: string
+  ): Promise<{ changes: Change[]; hasConflict: boolean; error?: string }> {
+    const repo = this.getRepository();
+    if (!repo) {
+      return { changes: [], hasConflict: false, error: 'No repository found' };
+    }
+
+    try {
+      let changes: Change[];
+
+      // For remote branches, we need to use the full ref name
+      // VS Code Git API expects refs like 'origin/main' for remote branches
+      const targetRef = targetBranch;
+
+      if (source.type === 'workingTree') {
+        changes = await repo.diffWith(targetRef);
+      } else if (source.branchName) {
+        changes = await repo.diffBetween(targetRef, source.branchName);
+      } else {
+        return { changes: [], hasConflict: false };
+      }
+
+      return { changes, hasConflict: false };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error getting diff:', error);
+
+      // Check for specific error types
+      const isBadRevision =
+        errorMessage.includes('bad revision') ||
+        errorMessage.includes('unknown revision') ||
+        errorMessage.includes('not a valid object name');
+
+      const isConflict =
+        errorMessage.includes('conflict') ||
+        errorMessage.includes('CONFLICT') ||
+        errorMessage.includes('BOTH_MODIFIED');
+
+      if (isBadRevision) {
+        return {
+          changes: [],
+          hasConflict: false,
+          error: `Branch not found: ${targetBranch}. Try running 'git fetch' first.`,
+        };
+      }
+
+      if (isConflict) {
+        return {
+          changes: [],
+          hasConflict: true,
+          error: 'Merge conflict detected between branches',
+        };
+      }
+
+      return {
+        changes: [],
+        hasConflict: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
    * Get the content of a file at a specific ref
    */
   async getFileContent(ref: string, path: string): Promise<string | undefined> {
@@ -168,6 +237,7 @@ export class GitService {
 
   /**
    * Create a Git URI for viewing file content at a specific ref
+   * Uses our custom scheme 'branch-diff-git' to avoid repository lookup issues
    */
   createGitUri(uri: vscode.Uri, ref: string): vscode.Uri {
     const repo = this.getRepository();
@@ -175,12 +245,20 @@ export class GitService {
       return uri;
     }
 
-    // Get relative path from repository root
-    const relativePath = vscode.workspace.asRelativePath(uri, false);
+    // Get the path relative to the repository root
+    const repoRoot = repo.rootUri.fsPath;
+    let relativePath = uri.fsPath;
+    if (relativePath.startsWith(repoRoot)) {
+      relativePath = relativePath.substring(repoRoot.length);
+      if (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+        relativePath = relativePath.substring(1);
+      }
+    }
 
-    return uri.with({
-      scheme: 'git',
-      path: uri.path,
+    // Use our custom scheme that handles content via repo.show()
+    return vscode.Uri.from({
+      scheme: 'branch-diff-git',
+      path: uri.fsPath,
       query: JSON.stringify({
         path: relativePath,
         ref: ref,

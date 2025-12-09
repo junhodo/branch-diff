@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { GitService } from './git/gitService';
+import { GitContentProvider } from './git/gitContentProvider';
 import { BranchTreeProvider } from './views/branchTreeProvider';
 import { DiffCommands } from './commands/diffCommands';
 import { Change, SourceSelection } from './git/types';
@@ -15,6 +16,13 @@ export async function activate(context: vscode.ExtensionContext) {
     console.warn('Branch Diff: Git service initialization failed');
     return;
   }
+
+  // Register custom content provider for git file content
+  const gitContentProvider = new GitContentProvider(gitService);
+  const contentProviderDisposable = vscode.workspace.registerTextDocumentContentProvider(
+    'branch-diff-git',
+    gitContentProvider
+  );
 
   // Create TreeView Provider
   const treeProvider = new BranchTreeProvider(gitService);
@@ -43,10 +51,26 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  const changeTargetCommand = vscode.commands.registerCommand(
+    'branch-diff.changeTarget',
+    () => {
+      diffCommands.changeTarget();
+    }
+  );
+
   const showFileDiffCommand = vscode.commands.registerCommand(
     'branch-diff.showFileDiff',
     (change: Change, targetBranch: string, source: SourceSelection) => {
       diffCommands.showFileDiff(change, targetBranch, source);
+    }
+  );
+
+  const openCurrentFileCommand = vscode.commands.registerCommand(
+    'branch-diff.openCurrentFile',
+    (item?: { change?: Change } | Change) => {
+      // Handle both BranchTreeItem (has change property) and direct Change object
+      const change = item && 'change' in item ? item.change : (item as Change | undefined);
+      diffCommands.openCurrentFile(change);
     }
   );
 
@@ -70,11 +94,15 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register all disposables
   context.subscriptions.push(
     treeView,
+    contentProviderDisposable,
     refreshCommand,
     changeSourceCommand,
+    changeTargetCommand,
     showFileDiffCommand,
+    openCurrentFileCommand,
     { dispose: () => gitService.dispose() },
-    { dispose: () => treeProvider.dispose() }
+    { dispose: () => treeProvider.dispose() },
+    { dispose: () => gitContentProvider.dispose() }
   );
 
   console.log('Branch Diff extension activated successfully!');

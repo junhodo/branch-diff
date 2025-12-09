@@ -1,13 +1,26 @@
 {
   "name": "branch-diff",
-  "displayName": "branch-diff",
-  "description": "show branch diff",
+  "displayName": "Branch Diff",
+  "description": "Compare and view file differences between Git branches in VS Code",
   "version": "0.0.1",
+  "//version": "Auto-updated from git tag during CI publish",
+  "publisher": "YOUR_PUBLISHER_ID",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/branch-diff"
+  },
   "engines": {
     "vscode": "^1.106.1"
   },
   "categories": [
-    "Other"
+    "Other",
+    "SCM Providers"
+  ],
+  "keywords": [
+    "git",
+    "diff",
+    "branch",
+    "compare"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
@@ -45,8 +58,18 @@
         "icon": "$(git-branch)"
       },
       {
+        "command": "branch-diff.changeTarget",
+        "title": "Change Target Branch",
+        "icon": "$(git-compare)"
+      },
+      {
         "command": "branch-diff.showFileDiff",
         "title": "Show File Diff"
+      },
+      {
+        "command": "branch-diff.openCurrentFile",
+        "title": "Open Current Version (HEAD)",
+        "icon": "$(go-to-file)"
       }
     ],
     "menus": {
@@ -55,6 +78,20 @@
           "command": "branch-diff.refresh",
           "when": "view == branchDiffView",
           "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "branch-diff.openCurrentFile",
+          "when": "resourceScheme == git || resourceScheme == branch-diff-git",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "branch-diff.openCurrentFile",
+          "when": "view == branchDiffView && viewItem == file",
+          "group": "inline"
         }
       ]
     }

@@ -88,12 +88,10 @@ export class DiffCommands {
       });
 
       for (const branch of remote) {
-        const displayName = branch.remoteName
-          ? `${branch.remoteName}/${branch.name}`
-          : branch.name;
+        // branch.name is already in format "origin/branch-name" for remote branches
         items.push({
-          label: `$(cloud) ${displayName}`,
-          detail: displayName,
+          label: `$(cloud) ${branch.name}`,
+          detail: branch.name,
         });
       }
     }
@@ -114,6 +112,98 @@ export class DiffCommands {
         type: 'branch',
         branchName: selected.detail,
       });
+    }
+  }
+
+  /**
+   * Change the target branch with search functionality
+   */
+  async changeTarget(): Promise<void> {
+    const { local, remote } = await this.gitService.getAllBranches();
+
+    const allBranches: vscode.QuickPickItem[] = [];
+
+    // Add local branches
+    if (local.length > 0) {
+      allBranches.push({
+        label: 'Local Branches',
+        kind: vscode.QuickPickItemKind.Separator,
+      });
+
+      for (const branch of local) {
+        allBranches.push({
+          label: `$(git-branch) ${branch.name}`,
+          description: branch.commit?.substring(0, 7),
+          detail: branch.name,
+        });
+      }
+    }
+
+    // Add remote branches
+    if (remote.length > 0) {
+      allBranches.push({
+        label: 'Remote Branches',
+        kind: vscode.QuickPickItemKind.Separator,
+      });
+
+      for (const branch of remote) {
+        // branch.name is already in format "origin/branch-name" for remote branches
+        allBranches.push({
+          label: `$(cloud) ${branch.name}`,
+          description: branch.commit?.substring(0, 7),
+          detail: branch.name,
+        });
+      }
+    }
+
+    const selected = await vscode.window.showQuickPick(allBranches, {
+      placeHolder: 'Search and select target branch to compare against',
+      title: 'Select Target Branch',
+      matchOnDescription: true,
+      matchOnDetail: true,
+    });
+
+    if (!selected || selected.kind === vscode.QuickPickItemKind.Separator || !selected.detail) {
+      return;
+    }
+
+    this.treeProvider.setTarget(selected.detail);
+  }
+
+  /**
+   * Open the current HEAD version of a file
+   */
+  async openCurrentFile(change?: Change): Promise<void> {
+    try {
+      let fileUri: vscode.Uri | undefined;
+
+      if (change) {
+        // Called from tree view context menu
+        fileUri = change.uri;
+      } else {
+        // Called from editor title - get URI from active editor
+        const activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+          const uri = activeEditor.document.uri;
+          if (uri.scheme === 'git' || uri.scheme === 'branch-diff-git') {
+            // Parse the git URI to get the actual file path
+            const query = JSON.parse(uri.query);
+            const repo = this.gitService.getRepository();
+            if (repo && query.path) {
+              fileUri = vscode.Uri.file(`${repo.rootUri.fsPath}/${query.path}`);
+            }
+          } else {
+            fileUri = uri;
+          }
+        }
+      }
+
+      if (fileUri) {
+        await vscode.window.showTextDocument(fileUri, { preview: false });
+      }
+    } catch (error) {
+      console.error('Error opening current file:', error);
+      vscode.window.showErrorMessage(`Failed to open file: ${error}`);
     }
   }
 

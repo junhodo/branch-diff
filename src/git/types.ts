@@ -30,6 +30,9 @@ export interface Repository {
   diffIndexWithHEAD(): Promise<Change[]>;
 
   show(ref: string, path: string): Promise<string>;
+
+  // For executing raw git commands
+  diff(ref1: string, ref2: string): Promise<string>;
 }
 
 export interface InputBox {
