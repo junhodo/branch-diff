@@ -6,6 +6,21 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+      target:
+        description: 'Publish target'
+        required: true
+        type: choice
+        options:
+          - both
+          - vscode
+          - openvsx
+        default: 'both'
 
 jobs:
   publish:
@@ -18,9 +33,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Get version from tag
+      - name: Get version from tag or input
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Update package.json version
         run: npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version
@@ -32,7 +52,12 @@ jobs:
         run: npx vsce package
 
       - name: Publish to VS Code Marketplace
+        if: ${{ !inputs.target || inputs.target == 'both' || inputs.target == 'vscode' }}
         run: npx vsce publish -p ${{ secrets.VSCE_PAT }}
+
+      - name: Publish to Open VSX
+        if: ${{ !inputs.target || inputs.target == 'both' || inputs.target == 'openvsx' }}
+        run: npx ovsx publish -p ${{ secrets.OVSX_PAT }}
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
