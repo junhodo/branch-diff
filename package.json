@@ -1,0 +1,88 @@
+{
+  "name": "branch-diff",
+  "displayName": "branch-diff",
+  "description": "show branch diff",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.106.1"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "extensionDependencies": [
+    "vscode.git"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "branch-diff-explorer",
+          "title": "Branch Diff",
+          "icon": "resources/branch-diff-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "branch-diff-explorer": [
+        {
+          "id": "branchDiffView",
+          "name": "Branches",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "branch-diff.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "branch-diff.changeSource",
+        "title": "Change Source Branch",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "branch-diff.showFileDiff",
+        "title": "Show File Diff"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "branch-diff.refresh",
+          "when": "view == branchDiffView",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.106.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.48.1",
+    "eslint": "^9.39.1",
+    "esbuild": "^0.27.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
