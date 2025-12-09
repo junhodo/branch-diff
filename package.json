@@ -4,7 +4,7 @@
   "description": "Compare and view file differences between Git branches in VS Code",
   "version": "0.0.1",
   "//version": "Auto-updated from git tag during CI publish",
-  "publisher": "YOUR_PUBLISHER_ID",
+  "publisher": "junhodo",
   "repository": {
     "type": "git",
     "url": "https://github.com/YOUR_USERNAME/branch-diff"
