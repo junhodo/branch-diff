@@ -7,7 +7,7 @@
   "publisher": "junhodo",
   "repository": {
     "type": "git",
-    "url": "https://github.com/junhodo/branch-diff"
+    "url": "https://github.com/junhodo/branch-diff.git"
   },
   "engines": {
     "vscode": "^1.106.1"
