@@ -5,6 +5,7 @@
   "version": "0.0.1",
   "//version": "Auto-updated from git tag during CI publish",
   "publisher": "junhodo",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/junhodo/branch-diff.git"
